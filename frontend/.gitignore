@@ -1,0 +1,17 @@
+# Virtual env
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Data files
+*.xlsx
+
+# Generated outputs
+*.json
+*.png
+
+# Editor/system
+.vscode/
+.DS_Store
