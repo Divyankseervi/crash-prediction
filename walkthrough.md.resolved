@@ -1,0 +1,46 @@
+# Walkthrough — Enhanced Crash Severity Prediction
+
+## What Was Done
+
+Added **5 statistical enhancements** to [preprocessrohan.py](file:///c:/Users/divya/OneDrive/Desktop/prob%20project/preprocessrohan.py):
+
+| # | Enhancement | Key Result |
+|---|-------------|------------|
+| 1 | **SMOTE Oversampling** | Balanced classes from 646/49/11/6 → 646 each; retrained both models |
+| 2 | **Chi-Square Tests** | 2/7 variables significant: `Crash_With` (p<0.001), `Air_Bag` (p<0.05) |
+| 3 | **Bayes' Theorem** | Conditional probabilities for Night, Wet, Highway, Snow/Rain conditions |
+| 4 | **ROC Curves + AUC** | One-vs-Rest curves for RF, RF+SMOTE, and OLR models |
+| 5 | **Odds Ratios** | Top: Cloudy/fog OR=91.4x ↑ severity, Snow/rain OR=0.0001 ↓ severity |
+
+## Model Results
+
+|  | Accuracy | Weighted F1 | Brier |
+|--|----------|-------------|-------|
+| OLR (Original) | 0.905 | 0.860 | 0.0434 |
+| RF (Original) | 0.905 | 0.876 | 0.0553 |
+| OLR + SMOTE | 0.587 | 0.682 | 0.1383 |
+| RF + SMOTE | 0.793 | 0.810 | 0.0788 |
+
+> [!NOTE]
+> SMOTE lowers overall accuracy (expected — it stops predicting everything as POD) but improves minority class detection, which is the whole point for a Prob & Stats project.
+
+## Output Files
+
+Two visualization PNGs are generated:
+
+### Figure 1 — Original 12-Panel Dashboard
+![Original dashboard](C:/Users/divya/.gemini/antigravity/brain/18f39759-db87-489d-9611-275388ff3c7b/crash_severity_analysis_v2.png)
+
+### Figure 2 — Enhanced Statistical Analysis (NEW)
+![Enhanced analysis with SMOTE, ROC, Chi-Square, Bayes, Odds Ratios](C:/Users/divya/.gemini/antigravity/brain/18f39759-db87-489d-9611-275388ff3c7b/crash_severity_enhanced_analysis.png)
+
+## Verification
+
+- ✅ Script runs with `python preprocessrohan.py` — exit code 0
+- ✅ All 5 new sections produce correct console output
+- ✅ Both PNG files generated (12-panel + 9-panel)
+- ✅ SMOTE balances all 4 classes to equal counts
+- ✅ Chi-Square correctly identifies `Crash_With` and `Air_Bag` as significant
+- ✅ Bayes' Theorem tables show correct conditional probabilities
+- ✅ ROC curves display AUC for all severity classes
+- ✅ Odds ratios correctly computed as exp(coefficient)

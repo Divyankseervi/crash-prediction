@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="AI-Based Crash Severity Prediction for Autonomous Vehicles — ML models, statistical analysis, and interactive dashboard">
+    <title>CrashPredict AI — Autonomous Vehicle Crash Severity</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">🚗</div>
+                CrashPredict AI
+            </a>
+            <button class="nav-toggle"
+                onclick="document.querySelector('.nav-links').classList.toggle('show')">☰</button>
+            <ul class="nav-links">
+                <li><a href="/" class="active">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/predict.html">Predict</a></li>
+                <li><a href="/analysis.html">Analysis</a></li>
+                <li><a href="/dataset.html">Dataset</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <section class="hero">
+            <div class="hero-badge">🔬 Machine Learning Research Project</div>
+            <h1>AI-Based <span>Crash Severity</span> Prediction<br>for Autonomous Vehicles</h1>
+            <p>Leveraging 7 machine learning models with advanced statistical analysis to predict autonomous vehicle
+                crash severity levels from real-world incident data.</p>
+
+            <div class="hero-stats" id="heroStats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value" id="statSamples">—</div>
+                    <div class="hero-stat-label">Data Samples</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">7</div>
+                    <div class="hero-stat-label">ML Models</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value" id="statFeatures">—</div>
+                    <div class="hero-stat-label">Features</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value" id="statAccuracy">—</div>
+                    <div class="hero-stat-label">Best Accuracy</div>
+                </div>
+            </div>
+
+            <div style="margin-top:2rem; display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+                <a href="/dashboard.html" class="btn btn-primary">📊 View Dashboard</a>
+                <a href="/predict.html" class="btn btn-secondary">🎯 Try Prediction</a>
+            </div>
+        </section>
+
+        <div class="section-header">
+            <h2>🔑 Key Findings</h2>
+            <p>Critical insights from our comprehensive analysis of AV crash data</p>
+        </div>
+        <div class="grid-4 fade-in" id="findingsGrid">
+            <div class="metric-card">
+                <div class="metric-value blue" id="findPod">—</div>
+                <div class="metric-label">POD Cases</div>
+                <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">Severe class imbalance
+                    addressed with SMOTE</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value green" id="findChi">—</div>
+                <div class="metric-label">Significant χ² Tests</div>
+                <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">Testing variable associations
+                    with severity</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value orange" id="findCV">—</div>
+                <div class="metric-label">RF CV Accuracy</div>
+                <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">5-fold cross-validation</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value red" id="findBest">—</div>
+                <div class="metric-label">Best Model</div>
+                <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">Accuracy on test set</div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>🤖 Models Implemented</h2>
+            <p>7 models trained — both on original imbalanced and SMOTE-balanced data</p>
+        </div>
+        <div class="grid-3">
+            <div class="card fade-in fade-in-1">
+                <div class="card-header">
+                    <div class="card-icon orange">📐</div>
+                    <div>
+                        <div class="card-title">Ordinal Logistic Regression</div>
+                        <div class="card-subtitle">Custom scipy-based implementation</div>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary)">Proportional-Odds / Cumulative Link model built
+                    from scratch. Models cumulative probabilities P(Y ≤ k) for each threshold.</p>
+            </div>
+            <div class="card fade-in fade-in-2">
+                <div class="card-header">
+                    <div class="card-icon blue">🌲</div>
+                    <div>
+                        <div class="card-title">Random Forest</div>
+                        <div class="card-subtitle">500-tree ensemble classifier</div>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary)">Ensemble of 500 decision trees with max depth
+                    10. Class-weighted to compensate for imbalance.</p>
+            </div>
+            <div class="card fade-in fade-in-3">
+                <div class="card-header">
+                    <div class="card-icon green">🚀</div>
+                    <div>
+                        <div class="card-title">Gradient Boosting</div>
+                        <div class="card-subtitle">300 sequential estimators</div>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary)">Sequential ensemble with learning rate 0.1 and
+                    stochastic subsampling. Trained on SMOTE data.</p>
+            </div>
+            <div class="card fade-in fade-in-1">
+                <div class="card-header">
+                    <div class="card-icon purple">🧠</div>
+                    <div>
+                        <div class="card-title">Multi-Layer Perceptron</div>
+                        <div class="card-subtitle">Neural network (128→64→32)</div>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary)">3-hidden-layer neural network with ReLU
+                    activation, early stopping, and L2 regularization.</p>
+            </div>
+            <div class="card fade-in fade-in-2">
+                <div class="card-header">
+                    <div class="card-icon cyan">⚡</div>
+                    <div>
+                        <div class="card-title">Support Vector Machine</div>
+                        <div class="card-subtitle">RBF kernel with probability calibration</div>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary)">SVM with radial basis function kernel and
+                    balanced class weights.</p>
+            </div>
+            <div class="card fade-in fade-in-3">
+                <div class="card-header">
+                    <div class="card-icon red">📊</div>
+                    <div>
+                        <div class="card-title">Logistic Regression</div>
+                        <div class="card-subtitle">sklearn baseline for CV</div>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary)">Standard multinomial logistic regression used
+                    as baseline for cross-validation comparison.</p>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>👥 Research Team</h2>
+        </div>
+        <div class="team-grid" style="margin-bottom:2rem">
+            <div class="team-card fade-in fade-in-1">
+                <div class="team-avatar">RS</div>
+                <div class="team-name">Rohan Saxena</div>
+                <div class="team-id">24BCE0801</div>
+            </div>
+            <div class="team-card fade-in fade-in-2">
+                <div class="team-avatar">AB</div>
+                <div class="team-name">Ankush Bhadouria</div>
+                <div class="team-id">24BDS0428</div>
+            </div>
+            <div class="team-card fade-in fade-in-3">
+                <div class="team-avatar">DS</div>
+                <div class="team-name">Divyank Seervi</div>
+                <div class="team-id">24BCE0793</div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>CrashPredict AI — Powered by FastAPI + Python</p>
+        </footer>
+    </div>
+
+    <script>
+        // Load live data from API
+        fetch('/api/results').then(r => r.json()).then(data => {
+            document.getElementById('statSamples').textContent = data.dataset.total_samples;
+            document.getElementById('statFeatures').textContent = data.dataset.features_count;
+            const best = Math.max(...Object.values(data.models).map(m => m.accuracy));
+            document.getElementById('statAccuracy').textContent = (best * 100).toFixed(1) + '%';
+            const pod = data.dataset.severity_distribution.POD || 0;
+            document.getElementById('findPod').textContent = ((pod / data.dataset.total_samples) * 100).toFixed(1) + '%';
+            const sigChi = data.chi_square.filter(c => c['p-value'] < 0.05).length;
+            document.getElementById('findChi').textContent = sigChi + '/' + data.chi_square.length;
+            document.getElementById('findCV').textContent = (data.cross_validation.RF_5fold_mean * 100).toFixed(1) + '%';
+            document.getElementById('findBest').textContent = (best * 100).toFixed(1) + '%';
+        }).catch(e => console.error('API error:', e));
+
+        window.addEventListener('scroll', () => document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20));
+        const observer = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)' } }) }, { threshold: 0.1 });
+        document.querySelectorAll('.fade-in').forEach(el => { el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; el.style.transition = 'all 0.6s ease-out'; observer.observe(el) });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI-Based Crash Severity Prediction for Autonomous Vehicles — ML models, statistical analysis, and interactive dashboard">
+  <title>CrashPredict AI — Autonomous Vehicle Crash Severity</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="bg-pattern"></div>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">
+        <div class="nav-logo-icon">🚗</div>
+        CrashPredict AI
+      </a>
+      <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('show')">☰</button>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="predict.html">Predict</a></li>
+        <li><a href="analysis.html">Analysis</a></li>
+        <li><a href="dataset.html">Dataset</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-badge">🔬 Machine Learning Research Project</div>
+      <h1>AI-Based <span>Crash Severity</span> Prediction<br>for Autonomous Vehicles</h1>
+      <p>Leveraging 7 machine learning models with advanced statistical analysis to predict autonomous vehicle crash severity levels from real-world incident data.</p>
+
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-value">891</div><div class="hero-stat-label">Data Samples</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">7</div><div class="hero-stat-label">ML Models</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">26</div><div class="hero-stat-label">Features</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">90.5%</div><div class="hero-stat-label">Best Accuracy</div></div>
+      </div>
+
+      <div style="margin-top:2rem; display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+        <a href="dashboard.html" class="btn btn-primary">📊 View Dashboard</a>
+        <a href="predict.html" class="btn btn-secondary">🎯 Try Prediction</a>
+      </div>
+    </section>
+
+    <!-- Key Findings -->
+    <div class="section-header">
+      <h2>🔑 Key Findings</h2>
+      <p>Critical insights from our comprehensive analysis of AV crash data</p>
+    </div>
+
+    <div class="grid-4 fade-in">
+      <div class="metric-card">
+        <div class="metric-value blue">90.7%</div>
+        <div class="metric-label">POD Cases</div>
+        <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">Severe class imbalance addressed with SMOTE</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value green">2/7</div>
+        <div class="metric-label">Significant χ² Tests</div>
+        <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">Crash_With & Air_Bag significantly associated</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value orange">0.905</div>
+        <div class="metric-label">RF CV Accuracy</div>
+        <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">5-fold cross-validation ± 0.021</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value red">85.5%</div>
+        <div class="metric-label">GBM+SMOTE</div>
+        <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.5rem">Gradient Boosting on balanced data</div>
+      </div>
+    </div>
+
+    <!-- Models Overview -->
+    <div class="section-header">
+      <h2>🤖 Models Implemented</h2>
+      <p>7 models trained — both on original imbalanced and SMOTE-balanced data</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card fade-in fade-in-1">
+        <div class="card-header">
+          <div class="card-icon orange">📐</div>
+          <div><div class="card-title">Ordinal Logistic Regression</div><div class="card-subtitle">Custom scipy-based implementation</div></div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary)">Proportional-Odds / Cumulative Link model built from scratch. Models cumulative probabilities P(Y ≤ k) for each threshold. Optimized via L-BFGS-B minimization.</p>
+      </div>
+      <div class="card fade-in fade-in-2">
+        <div class="card-header">
+          <div class="card-icon blue">🌲</div>
+          <div><div class="card-title">Random Forest</div><div class="card-subtitle">500-tree ensemble classifier</div></div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary)">Ensemble of 500 decision trees with max depth 10. Class-weighted to compensate for imbalance. Also retrained on SMOTE-balanced data.</p>
+      </div>
+      <div class="card fade-in fade-in-3">
+        <div class="card-header">
+          <div class="card-icon green">🚀</div>
+          <div><div class="card-title">Gradient Boosting (GBM)</div><div class="card-subtitle">300 sequential estimators</div></div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary)">Sequential ensemble with learning rate 0.1 and stochastic subsampling (80%). Typically outperforms RF on tabular data. Trained on SMOTE data.</p>
+      </div>
+      <div class="card fade-in fade-in-1">
+        <div class="card-header">
+          <div class="card-icon purple">🧠</div>
+          <div><div class="card-title">Multi-Layer Perceptron</div><div class="card-subtitle">Deep neural network (128→64→32)</div></div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary)">3-hidden-layer neural network with ReLU activation, early stopping, and L2 regularization. Demonstrates deep learning limitations on small datasets.</p>
+      </div>
+      <div class="card fade-in fade-in-2">
+        <div class="card-header">
+          <div class="card-icon cyan">⚡</div>
+          <div><div class="card-title">Support Vector Machine</div><div class="card-subtitle">RBF kernel with probability calibration</div></div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary)">SVM with radial basis function kernel and balanced class weights. Probability calibration enables reliable confidence estimates.</p>
+      </div>
+      <div class="card fade-in fade-in-3">
+        <div class="card-header">
+          <div class="card-icon red">📊</div>
+          <div><div class="card-title">Logistic Regression</div><div class="card-subtitle">sklearn baseline for CV comparison</div></div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary)">Standard multinomial logistic regression used as a baseline reference for cross-validation comparison against the Random Forest ensemble.</p>
+      </div>
+    </div>
+
+    <!-- Methodology -->
+    <div class="section-header">
+      <h2>📋 Methodology & Analysis</h2>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon green">📈</div>
+          <div><div class="card-title">Statistical Analysis</div></div>
+        </div>
+        <ul style="font-size:0.85rem;color:var(--text-secondary);list-style:none;display:flex;flex-direction:column;gap:0.5rem">
+          <li>✅ Chi-Square Tests of Independence (7 variables)</li>
+          <li>✅ Bayes' Theorem Conditional Probabilities (5 conditions)</li>
+          <li>✅ Odds Ratios from OLR Coefficients</li>
+          <li>✅ Wilson 95% Confidence Intervals</li>
+          <li>✅ ROC Curves with AUC (per severity class)</li>
+          <li>✅ Brier Score Calibration</li>
+          <li>✅ Permutation Feature Importance</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon blue">⚙️</div>
+          <div><div class="card-title">Feature Engineering</div></div>
+        </div>
+        <ul style="font-size:0.85rem;color:var(--text-secondary);list-style:none;display:flex;flex-direction:column;gap:0.5rem">
+          <li>🔧 Speed Ratio (precrash / limit) — speeding indicator</li>
+          <li>🔧 Speed × Night interaction term</li>
+          <li>🔧 Incident Year & Month temporal features</li>
+          <li>🔧 Vehicle Age indicator (Is_OldVehicle)</li>
+          <li>🔧 6 binary condition flags (night, wet, highway, dark, bad weather, airbag)</li>
+          <li>🔧 One-hot encoding of categorical variables</li>
+          <li>🔧 SMOTE oversampling for class balance</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <div class="section-header">
+      <h2>👥 Research Team</h2>
+    </div>
+    <div class="team-grid" style="margin-bottom:2rem">
+      <div class="team-card fade-in fade-in-1">
+        <div class="team-avatar">RS</div>
+        <div class="team-name">Rohan Saxena</div>
+        <div class="team-id">24BCE0801</div>
+      </div>
+      <div class="team-card fade-in fade-in-2">
+        <div class="team-avatar">AB</div>
+        <div class="team-name">Ankush Bhadouria</div>
+        <div class="team-id">24BDS0428</div>
+      </div>
+      <div class="team-card fade-in fade-in-3">
+        <div class="team-avatar">DS</div>
+        <div class="team-name">Divyank Seervi</div>
+        <div class="team-id">24BCE0793</div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <p>CrashPredict AI — AI-Based Crash Severity Prediction for Autonomous Vehicles</p>
+      <p style="margin-top:0.5rem">Dataset: AV_accident_data (n=891) · Built with Python, scikit-learn, Chart.js</p>
+    </footer>
+  </div>
+
+  <script>
+    // Navbar scroll effect
+    window.addEventListener('scroll', () => {
+      document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+    });
+
+    // Intersection Observer for fade animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'all 0.6s ease-out';
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>

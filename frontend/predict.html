@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Live crash severity prediction powered by FastAPI and scikit-learn">
+    <title>Predict — CrashPredict AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">🚗</div>CrashPredict AI
+            </a>
+            <button class="nav-toggle"
+                onclick="document.querySelector('.nav-links').classList.toggle('show')">☰</button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/predict.html" class="active">Predict</a></li>
+                <li><a href="/analysis.html">Analysis</a></li>
+                <li><a href="/dataset.html">Dataset</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="section-header" style="margin-top:0">
+            <h2>🎯 Live Crash Severity Prediction</h2>
+            <p>Enter crash scenario parameters — predictions run through the actual Python Random Forest model via
+                FastAPI</p>
+        </div>
+
+        <div class="grid-2">
+            <!-- Input Form -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon blue">⚙️</div>
+                    <div>
+                        <div class="card-title">Scenario Parameters</div>
+                        <div class="card-subtitle">All predictions use the trained RF model (500 trees)</div>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="gap:0.75rem">
+                    <div class="form-group">
+                        <label class="form-label">Speed Limit (MPH)</label>
+                        <input type="number" class="form-input" id="speedLimit" value="35" min="5" max="80">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pre-crash Speed (MPH)</label>
+                        <input type="number" class="form-input" id="precrashSpeed" value="10" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Vehicle Mileage</label>
+                        <input type="number" class="form-input" id="mileage" value="500" min="0" max="200000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Weather</label>
+                        <select class="form-select" id="weather">
+                            <option value="clear">Clear</option>
+                            <option value="cloudy">Cloudy/Fog</option>
+                            <option value="rain">Snow/Rain</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Lighting</label>
+                        <select class="form-select" id="lighting">
+                            <option value="daylight">Daylight</option>
+                            <option value="dark_lit">Dark — Lighted</option>
+                            <option value="dark_unlit">Dark — Not Lighted</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Roadway Type</label>
+                        <select class="form-select" id="roadway">
+                            <option value="street">Street</option>
+                            <option value="highway">Highway</option>
+                            <option value="intersection">Intersection</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top:1rem">
+                    <label class="form-label">Conditions</label>
+                    <div class="toggle-group">
+                        <label class="toggle-item"><input type="checkbox" id="isNight"><span
+                                class="toggle-switch"></span><span class="toggle-label">Night</span></label>
+                        <label class="toggle-item"><input type="checkbox" id="isWet"><span
+                                class="toggle-switch"></span><span class="toggle-label">Wet Road</span></label>
+                        <label class="toggle-item"><input type="checkbox" id="airbag"><span
+                                class="toggle-switch"></span><span class="toggle-label">Airbag Deployed</span></label>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" style="width:100%;margin-top:1.5rem;justify-content:center"
+                    id="predictBtn" onclick="runPrediction()">
+                    🐍 Predict via Python Model
+                </button>
+                <div id="apiStatus"
+                    style="text-align:center;margin-top:0.5rem;font-size:0.75rem;color:var(--text-muted)"></div>
+            </div>
+
+            <!-- Results -->
+            <div>
+                <div class="card" id="resultCard" style="display:none">
+                    <div class="card-header">
+                        <div class="card-icon green">📊</div>
+                        <div>
+                            <div class="card-title">Prediction Results</div>
+                            <div class="card-subtitle" id="resultSub"></div>
+                        </div>
+                    </div>
+
+                    <div class="risk-gauge">
+                        <div class="risk-gauge-value" id="riskValue">—</div>
+                        <div class="risk-gauge-label">Risk Index (0=Safest, 3=Most Severe)</div>
+                    </div>
+
+                    <div id="probBars"></div>
+
+                    <div id="sourceTag"
+                        style="text-align:center;margin-top:0.75rem;font-size:0.75rem;padding:0.4rem 0.8rem;border-radius:100px;display:inline-block;width:100%">
+                    </div>
+
+                    <div class="chart-container" style="margin-top:1rem;min-height:220px">
+                        <canvas id="predChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Preset Scenarios -->
+                <div class="card" style="margin-top:1.5rem">
+                    <div class="card-header">
+                        <div class="card-icon orange">📋</div>
+                        <div>
+                            <div class="card-title">Preset Scenarios</div>
+                            <div class="card-subtitle">Pre-computed scenarios from training</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem" id="scenarioButtons"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>CrashPredict AI — Powered by FastAPI + scikit-learn</p>
+        </footer>
+    </div>
+
+    <script>
+        const SEV_LABELS = ['POD', 'Minor', 'Moderate', 'Serious'];
+        const SEV_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+        let predChart = null;
+
+        // Load presets from API
+        fetch('/api/results').then(r => r.json()).then(data => {
+            const container = document.getElementById('scenarioButtons');
+            data.scenarios.forEach(s => {
+                const btn = document.createElement('button'); btn.className = 'btn btn-secondary'; btn.style.width = '100%'; btn.style.justifyContent = 'space-between';
+                const ri = s.risk_index; const riskColor = ri < 0.3 ? '#10b981' : ri < 1 ? '#f59e0b' : '#ef4444';
+                btn.innerHTML = `<span>${s.name}</span><span style="font-family:var(--font-mono);color:${riskColor}">Risk: ${ri.toFixed(2)}</span>`;
+                btn.onclick = () => showResults(s.probabilities, s.risk_index, s.name, 'pre_computed');
+                container.appendChild(btn);
+            });
+            document.getElementById('apiStatus').innerHTML = '✅ Connected to FastAPI backend';
+            document.getElementById('apiStatus').style.color = '#10b981';
+        }).catch(e => {
+            document.getElementById('apiStatus').innerHTML = '❌ Cannot reach backend — start server with: <code>.venv\\Scripts\\python.exe -m uvicorn backend.main:app --port 8000</code>';
+            document.getElementById('apiStatus').style.color = '#ef4444';
+        });
+
+        function runPrediction() {
+            const speed = parseFloat(document.getElementById('speedLimit').value) || 35;
+            const precrash = parseFloat(document.getElementById('precrashSpeed').value) || 10;
+            const mileage = parseFloat(document.getElementById('mileage').value) || 500;
+            const isNight = document.getElementById('isNight').checked ? 1 : 0;
+            const isWet = document.getElementById('isWet').checked ? 1 : 0;
+            const isHighway = document.getElementById('roadway').value === 'highway' ? 1 : 0;
+            const isDark = document.getElementById('lighting').value.startsWith('dark') ? 1 : 0;
+            const isBadWeather = document.getElementById('weather').value !== 'clear' ? 1 : 0;
+            const airbag = document.getElementById('airbag').checked ? 1 : 0;
+
+            const btn = document.getElementById('predictBtn');
+            btn.textContent = '⏳ Running Python model...'; btn.disabled = true;
+
+            const card = document.getElementById('resultCard');
+            card.style.display = 'block';
+            document.getElementById('resultSub').textContent = 'Calling FastAPI /api/predict...';
+            document.getElementById('riskValue').textContent = '⏳';
+            document.getElementById('riskValue').style.color = '#94a3b8';
+            document.getElementById('probBars').innerHTML = '<p style="text-align:center;color:var(--text-muted)">Running Random Forest prediction in Python...</p>';
+
+            fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ speedLimit: speed, precrashSpeed: precrash, mileage: mileage, isNight, isWet, isHighway, isDark, isBadWeather, airbag })
+            })
+                .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+                .then(result => {
+                    btn.textContent = '🐍 Predict via Python Model'; btn.disabled = false;
+                    if (result.detail) { document.getElementById('probBars').innerHTML = `<p style="color:#ef4444;text-align:center">Error: ${result.detail}</p>`; return }
+                    const name = `Speed ${speed}mph | Pre-crash ${precrash}mph | ${isNight ? 'Night' : 'Day'} | ${isWet ? 'Wet' : 'Dry'} → ${result.predicted_class}`;
+                    showResults(result.probabilities, result.risk_index, name, result.source);
+                })
+                .catch(err => {
+                    btn.textContent = '🐍 Predict via Python Model'; btn.disabled = false;
+                    document.getElementById('probBars').innerHTML = `<p style="color:#ef4444;text-align:center">Backend error: ${err.message}<br><small>Make sure the FastAPI server is running on port 8000</small></p>`;
+                });
+        }
+
+        function showResults(probs, riskIndex, name, source) {
+            const card = document.getElementById('resultCard'); card.style.display = 'block'; card.style.animation = 'fadeInUp 0.4s ease-out';
+            document.getElementById('resultSub').textContent = name;
+            const riskEl = document.getElementById('riskValue'); riskEl.textContent = riskIndex.toFixed(3);
+            riskEl.style.color = riskIndex < 0.3 ? '#10b981' : riskIndex < 1 ? '#f59e0b' : '#ef4444';
+
+            const barsHTML = SEV_LABELS.map((label, i) => {
+                const pct = ((probs[label] || 0) * 100);
+                return `<div class="prob-bar-container"><div class="prob-bar-label"><span style="color:${SEV_COLORS[i]};font-weight:600">${label}</span><span style="font-family:var(--font-mono)">${pct.toFixed(1)}%</span></div><div class="prob-bar-track"><div class="prob-bar-fill" style="width:${Math.max(pct, 2)}%;background:${SEV_COLORS[i]}">${pct > 10 ? pct.toFixed(1) + '%' : ''}</div></div></div>`;
+            }).join('');
+            document.getElementById('probBars').innerHTML = barsHTML;
+
+            const tag = document.getElementById('sourceTag');
+            if (source === 'live_python_fastapi') { tag.innerHTML = '🐍 <strong>Live Python Prediction</strong> — Random Forest via FastAPI'; tag.style.background = 'rgba(16,185,129,0.15)'; tag.style.color = '#10b981' }
+            else { tag.innerHTML = '📦 <strong>Pre-computed</strong> — Scenario from training data'; tag.style.background = 'rgba(59,130,246,0.15)'; tag.style.color = '#3b82f6' }
+
+            if (predChart) predChart.destroy();
+            predChart = new Chart(document.getElementById('predChart'), {
+                type: 'doughnut', data: { labels: SEV_LABELS, datasets: [{ data: SEV_LABELS.map(l => ((probs[l] || 0) * 100).toFixed(1)), backgroundColor: SEV_COLORS, borderWidth: 0, borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 }, padding: 15 } } } }
+            });
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        window.addEventListener('scroll', () => document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20));
+    </script>
+</body>
+
+</html>

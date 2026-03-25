@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive dashboard for AV crash severity prediction models">
+    <title>Dashboard — CrashPredict AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">🚗</div>CrashPredict AI
+            </a>
+            <button class="nav-toggle"
+                onclick="document.querySelector('.nav-links').classList.toggle('show')">☰</button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="/predict.html">Predict</a></li>
+                <li><a href="/analysis.html">Analysis</a></li>
+                <li><a href="/dataset.html">Dataset</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="section-header" style="margin-top:0">
+            <h2>📊 Model Performance Dashboard</h2>
+            <p>Comprehensive comparison of all trained models via FastAPI backend</p>
+        </div>
+
+        <div class="card mb-2">
+            <div class="card-header">
+                <div class="card-icon blue">📋</div>
+                <div>
+                    <div class="card-title">Model Comparison</div>
+                    <div class="card-subtitle">Accuracy, Weighted F1, and Brier Score</div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Accuracy</th>
+                            <th>Weighted F1</th>
+                            <th>Brier Score</th>
+                            <th>Training Data</th>
+                        </tr>
+                    </thead>
+                    <tbody id="metricsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon green">📊</div>
+                    <div>
+                        <div class="card-title">Accuracy Comparison</div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="accuracyChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon orange">🎯</div>
+                    <div>
+                        <div class="card-title">F1 Score Comparison</div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="f1Chart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>🔢 Confusion Matrices</h2>
+            <p>Select a model to view its confusion matrix</p>
+        </div>
+        <div class="tabs" id="cmTabs"></div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon purple">🔢</div>
+                    <div>
+                        <div class="card-title" id="cmTitle">Confusion Matrix</div>
+                    </div>
+                </div>
+                <div id="cmContainer"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon cyan">📈</div>
+                    <div>
+                        <div class="card-title">ROC Curves</div>
+                        <div class="card-subtitle" id="rocSubtitle">One-vs-Rest per severity class</div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="rocChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>🏆 Feature Importances</h2>
+            <p>Which features drive predictions the most?</p>
+        </div>
+        <div class="tabs" id="fiTabs"></div>
+        <div class="card">
+            <div class="chart-container" style="min-height:400px"><canvas id="fiChart"></canvas></div>
+        </div>
+
+        <div class="section-header">
+            <h2>✅ Cross-Validation & Calibration</h2>
+        </div>
+        <div class="grid-3" id="cvCards"></div>
+
+        <footer class="footer">
+            <p>CrashPredict AI — Dashboard · Powered by FastAPI</p>
+        </footer>
+    </div>
+
+    <script>
+        const COLORS = { OLR: '#FF9800', RF: '#2196F3', OLR_SMOTE: '#FFC107', RF_SMOTE: '#00BCD4', GBM: '#4CAF50', MLP: '#8B5CF6', SVM: '#EF4444' };
+        const MODEL_DISPLAY = { OLR: 'OLR', RF: 'Random Forest', OLR_SMOTE: 'OLR+SMOTE', RF_SMOTE: 'RF+SMOTE', GBM: 'Gradient Boosting', MLP: 'Neural Network', SVM: 'SVM' };
+        const SEV_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+        const SEV_LABELS = ['POD', 'Minor', 'Moderate', 'Serious'];
+        let DATA = null, rocChart = null, fiChart = null;
+
+        fetch('/api/results').then(r => r.json()).then(data => {
+            DATA = data; renderMetrics(data); renderAccuracyChart(data); renderF1Chart(data); renderCMTabs(data); renderROC(data, 'RF'); renderFITabs(data); renderCV(data);
+        }).catch(e => console.error('API error:', e));
+
+        function renderMetrics(data) {
+            const tbody = document.getElementById('metricsBody');
+            const training = { OLR: 'Original', RF: 'Original', OLR_SMOTE: 'SMOTE', RF_SMOTE: 'SMOTE', GBM: 'SMOTE', MLP: 'SMOTE', SVM: 'SMOTE' };
+            let best = { acc: 0, f1: 0, brier: 1 };
+            Object.entries(data.models).forEach(([k, v]) => { if (v.accuracy > best.acc) best.acc = v.accuracy; if (v.f1 > best.f1) best.f1 = v.f1; if (v.brier < best.brier) best.brier = v.brier });
+            Object.entries(data.models).forEach(([key, m]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td style="font-weight:600;color:${COLORS[key]}">${MODEL_DISPLAY[key]}</td>
+          <td style="${m.accuracy === best.acc ? 'color:#10b981;font-weight:700' : ''}">${(m.accuracy * 100).toFixed(1)}%</td>
+          <td style="${m.f1 === best.f1 ? 'color:#10b981;font-weight:700' : ''}">${m.f1.toFixed(4)}</td>
+          <td style="${m.brier === best.brier ? 'color:#10b981;font-weight:700' : ''}">${m.brier.toFixed(4)}</td>
+          <td>${training[key]}</td>`;
+                tbody.appendChild(row);
+            });
+        }
+
+        function barChart(id, label, models, values, colors) {
+            new Chart(document.getElementById(id), {
+                type: 'bar', data: { labels: models, datasets: [{ label, data: values, backgroundColor: colors, borderRadius: 6, borderWidth: 0 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 1, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } } }
+                }
+            });
+        }
+
+        function renderAccuracyChart(data) { const k = Object.keys(data.models); barChart('accuracyChart', 'Accuracy', k.map(k => MODEL_DISPLAY[k]), k.map(k => data.models[k].accuracy), k.map(k => COLORS[k])) }
+        function renderF1Chart(data) { const k = Object.keys(data.models); barChart('f1Chart', 'F1 Score', k.map(k => MODEL_DISPLAY[k]), k.map(k => data.models[k].f1), k.map(k => COLORS[k])) }
+
+        function renderCMTabs(data) {
+            const tabs = document.getElementById('cmTabs');
+            Object.keys(data.models).forEach((key, i) => {
+                const btn = document.createElement('button'); btn.className = 'tab' + (i === 0 ? ' active' : ''); btn.textContent = MODEL_DISPLAY[key];
+                btn.onclick = () => { tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); btn.classList.add('active'); renderCM(data, key); renderROC(data, key) };
+                tabs.appendChild(btn);
+            });
+            renderCM(data, 'OLR');
+        }
+
+        function renderCM(data, modelKey) {
+            const cm = data.models[modelKey].confusion_matrix;
+            document.getElementById('cmTitle').textContent = `Confusion Matrix — ${MODEL_DISPLAY[modelKey]}`;
+            const container = document.getElementById('cmContainer');
+            let maxVal = 0; cm.forEach(row => row.forEach(v => { if (v > maxVal) maxVal = v }));
+            let html = '<div class="cm-grid" style="grid-template-columns:auto repeat(4,1fr)">';
+            html += '<div class="cm-cell cm-corner"></div>';
+            SEV_LABELS.forEach(l => html += `<div class="cm-cell cm-header">${l}</div>`);
+            cm.forEach((row, i) => {
+                html += `<div class="cm-cell cm-header">${SEV_LABELS[i]}</div>`;
+                row.forEach((v, j) => {
+                    const intensity = maxVal > 0 ? v / maxVal : 0; const bg = i === j ? `rgba(59,130,246,${0.1 + intensity * 0.7})` : `rgba(239,68,68,${intensity * 0.4})`;
+                    html += `<div class="cm-cell" style="background:${bg};color:${intensity > 0.4 ? 'white' : 'var(--text-secondary)'}">${v}</div>`;
+                });
+            });
+            html += '</div>'; container.innerHTML = html;
+        }
+
+        function renderROC(data, modelKey) {
+            const rocData = data.roc_curves[modelKey];
+            if (!rocData) { document.getElementById('rocSubtitle').textContent = 'No ROC data for ' + MODEL_DISPLAY[modelKey]; return }
+            document.getElementById('rocSubtitle').textContent = `${MODEL_DISPLAY[modelKey]} — One-vs-Rest per severity class`;
+            if (rocChart) rocChart.destroy();
+            const datasets = SEV_LABELS.map((label, i) => ({
+                label: `${label} (AUC=${rocData[label]?.auc?.toFixed(3) || 'N/A'})`,
+                data: rocData[label]?.fpr?.map((f, idx) => ({ x: f, y: rocData[label].tpr[idx] })) || [],
+                borderColor: SEV_COLORS[i], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.3
+            }));
+            datasets.push({ label: 'Random (AUC=0.5)', data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], borderColor: 'rgba(255,255,255,0.2)', borderDash: [5, 5], borderWidth: 1, pointRadius: 0 });
+            rocChart = new Chart(document.getElementById('rocChart'), {
+                type: 'scatter', data: { datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'FPR', color: '#94a3b8' }, min: 0, max: 1, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { title: { display: true, text: 'TPR', color: '#94a3b8' }, min: 0, max: 1, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                    },
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }, showLine: true
+                }
+            });
+        }
+
+        function renderFITabs(data) {
+            const tabs = document.getElementById('fiTabs');
+            ['RF', 'RF_SMOTE', 'GBM'].forEach((key, i) => {
+                if (!data.models[key]?.feature_importances) return;
+                const btn = document.createElement('button'); btn.className = 'tab' + (i === 0 ? ' active' : ''); btn.textContent = MODEL_DISPLAY[key];
+                btn.onclick = () => { tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); btn.classList.add('active'); renderFI(data, key) };
+                tabs.appendChild(btn);
+            });
+            const permBtn = document.createElement('button'); permBtn.className = 'tab'; permBtn.textContent = 'Permutation';
+            permBtn.onclick = () => { tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); permBtn.classList.add('active'); renderPermFI(data) };
+            tabs.appendChild(permBtn);
+            renderFI(data, 'RF');
+        }
+
+        function renderFI(data, modelKey) {
+            const fi = data.models[modelKey].feature_importances; if (!fi) return;
+            const sorted = Object.entries(fi).sort((a, b) => b[1] - a[1]).slice(0, 15);
+            if (fiChart) fiChart.destroy();
+            fiChart = new Chart(document.getElementById('fiChart'), {
+                type: 'bar', data: {
+                    labels: sorted.map(s => s[0]), datasets: [{
+                        data: sorted.map(s => s[1]),
+                        backgroundColor: sorted.map((_, i) => `rgba(59,130,246,${0.3 + i * 0.045})`).reverse(), borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, title: { display: true, text: `${MODEL_DISPLAY[modelKey]} — Top 15 Features`, color: '#f1f5f9', font: { size: 14 } } },
+                    scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, y: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } } }
+                }
+            });
+        }
+
+        function renderPermFI(data) {
+            const pi = data.permutation_importance; if (!pi) return;
+            const sorted = pi.sort((a, b) => b.Importance_Mean - a.Importance_Mean).slice(0, 15);
+            if (fiChart) fiChart.destroy();
+            fiChart = new Chart(document.getElementById('fiChart'), {
+                type: 'bar', data: {
+                    labels: sorted.map(s => s.Feature), datasets: [{
+                        data: sorted.map(s => s.Importance_Mean),
+                        backgroundColor: sorted.map((_, i) => `rgba(16,185,129,${0.3 + i * 0.045})`).reverse(), borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, title: { display: true, text: 'Permutation Feature Importance (RF)', color: '#f1f5f9', font: { size: 14 } } },
+                    scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, y: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } } }
+                }
+            });
+        }
+
+        function renderCV(data) {
+            const cv = data.cross_validation; const cvCards = document.getElementById('cvCards');
+            [{ label: 'RF 5-Fold CV', value: `${(cv.RF_5fold_mean * 100).toFixed(1)}%`, sub: `± ${(cv.RF_5fold_std * 100).toFixed(1)}%`, color: 'blue' },
+            { label: 'LR 5-Fold CV', value: `${(cv.LR_5fold_mean * 100).toFixed(1)}%`, sub: `± ${(cv.LR_5fold_std * 100).toFixed(1)}%`, color: 'orange' },
+            { label: 'Best Brier Score', value: Math.min(...Object.values(data.models).map(m => m.brier)).toFixed(4), sub: 'Lower is better', color: 'green' }
+            ].forEach(c => { cvCards.innerHTML += `<div class="metric-card"><div class="metric-value ${c.color}">${c.value}</div><div class="metric-label">${c.label}</div><div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.4rem">${c.sub}</div></div>` });
+        }
+
+        window.addEventListener('scroll', () => document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20));
+    </script>
+</body>
+
+</html>

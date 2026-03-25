@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Explore the AV crash severity dataset with live backend data">
+    <title>Dataset — CrashPredict AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">🚗</div>CrashPredict AI
+            </a>
+            <button class="nav-toggle"
+                onclick="document.querySelector('.nav-links').classList.toggle('show')">☰</button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/predict.html">Predict</a></li>
+                <li><a href="/analysis.html">Analysis</a></li>
+                <li><a href="/dataset.html" class="active">Dataset</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="section-header" style="margin-top:0">
+            <h2>📂 Dataset Explorer</h2>
+            <p>Live data loaded from Python backend via FastAPI</p>
+        </div>
+
+        <div class="grid-4" id="summaryStats"></div>
+
+        <div class="grid-2 mt-2">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon blue">📊</div>
+                    <div>
+                        <div class="card-title">Severity Distribution</div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="sevChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon green">📋</div>
+                    <div>
+                        <div class="card-title">Feature Summary</div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Severity</td>
+                                <td>Target</td>
+                                <td>POD / Minor / Moderate / Serious</td>
+                            </tr>
+                            <tr>
+                                <td>Posted Speed Limit</td>
+                                <td>Numeric</td>
+                                <td>Speed limit in MPH</td>
+                            </tr>
+                            <tr>
+                                <td>SV Precrash Speed</td>
+                                <td>Numeric</td>
+                                <td>Pre-crash speed in MPH</td>
+                            </tr>
+                            <tr>
+                                <td>Mileage</td>
+                                <td>Numeric</td>
+                                <td>Vehicle mileage</td>
+                            </tr>
+                            <tr>
+                                <td>Speed_Ratio</td>
+                                <td>Engineered</td>
+                                <td>Precrash / Speed Limit</td>
+                            </tr>
+                            <tr>
+                                <td>Speed_Night</td>
+                                <td>Engineered</td>
+                                <td>Speed × Night interaction</td>
+                            </tr>
+                            <tr>
+                                <td>Is_Night</td>
+                                <td>Binary</td>
+                                <td>Night-time flag</td>
+                            </tr>
+                            <tr>
+                                <td>Is_Wet</td>
+                                <td>Binary</td>
+                                <td>Wet road flag</td>
+                            </tr>
+                            <tr>
+                                <td>Is_Highway</td>
+                                <td>Binary</td>
+                                <td>Highway type flag</td>
+                            </tr>
+                            <tr>
+                                <td>Is_Dark</td>
+                                <td>Binary</td>
+                                <td>Dark lighting flag</td>
+                            </tr>
+                            <tr>
+                                <td>Is_BadWeather</td>
+                                <td>Binary</td>
+                                <td>Non-clear weather flag</td>
+                            </tr>
+                            <tr>
+                                <td>AirBag_Deployed</td>
+                                <td>Binary</td>
+                                <td>Airbag deployment flag</td>
+                            </tr>
+                            <tr>
+                                <td>Is_OldVehicle</td>
+                                <td>Binary</td>
+                                <td>Model year below median</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Raw Data from /api/dataset -->
+        <div class="section-header">
+            <h2>📄 Raw Data Sample</h2>
+            <p>First 20 rows from the Excel file — loaded via /api/dataset</p>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon cyan">📝</div>
+                <div>
+                    <div class="card-title">Sample Rows</div>
+                    <div class="card-subtitle" id="dataShape"></div>
+                </div>
+            </div>
+            <div class="table-container" id="rawDataContainer">
+                <p style="color:var(--text-muted);padding:1rem">Loading data from Python backend...</p>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>⚠️ Class Imbalance</h2>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon red">⚖️</div>
+                <div>
+                    <div class="card-title">Understanding the Data Imbalance</div>
+                </div>
+            </div>
+            <div class="grid-2" style="gap:1.5rem">
+                <div>
+                    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.7">The dataset has <strong
+                            style="color:var(--accent-red)">extreme class imbalance</strong> — 90.7% of cases are POD.
+                        <strong style="color:var(--accent-blue)">SMOTE</strong> generates synthetic minority-class
+                        samples so models learn all severity levels.</p>
+                    <div id="imbalanceBars" style="margin-top:1rem"></div>
+                </div>
+                <div class="chart-container"><canvas id="imbalanceChart"></canvas></div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>CrashPredict AI — Dataset Explorer · FastAPI Backend</p>
+        </footer>
+    </div>
+
+    <script>
+        const SEV_LABELS = ['POD', 'Minor', 'Moderate', 'Serious'];
+        const SEV_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
+        // Load model results for summary stats
+        fetch('/api/results').then(r => r.json()).then(data => {
+            renderSummary(data); renderSevChart(data); renderImbalance(data);
+        });
+
+        // Load raw dataset from /api/dataset (reads Excel via Python)
+        fetch('/api/dataset').then(r => r.json()).then(data => {
+            document.getElementById('dataShape').textContent = `${data.shape[0]} rows × ${data.shape[1]} columns`;
+            renderRawData(data);
+        }).catch(e => { document.getElementById('rawDataContainer').innerHTML = `<p style="color:#ef4444;padding:1rem">Failed to load: ${e}</p>` });
+
+        function renderSummary(data) {
+            const d = data.dataset; const container = document.getElementById('summaryStats');
+            [{ value: d.total_samples, label: 'Total Samples', color: 'blue' }, { value: d.features_count, label: 'Features', color: 'green' },
+            { value: Object.keys(d.severity_distribution).length, label: 'Severity Classes', color: 'orange' },
+            { value: `${((d.severity_distribution.POD / d.total_samples) * 100).toFixed(1)}%`, label: 'POD Majority', color: 'red' }
+            ].forEach(s => { container.innerHTML += `<div class="metric-card"><div class="metric-value ${s.color}">${s.value}</div><div class="metric-label">${s.label}</div></div>` });
+        }
+
+        function renderSevChart(data) {
+            const dist = data.dataset.severity_distribution;
+            new Chart(document.getElementById('sevChart'), {
+                type: 'doughnut', data: { labels: SEV_LABELS, datasets: [{ data: SEV_LABELS.map(l => dist[l] || 0), backgroundColor: SEV_COLORS, borderWidth: 0, borderRadius: 4 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 }, padding: 20 } },
+                        title: { display: true, text: 'Crash Severity Distribution', color: '#f1f5f9', font: { size: 14 } }
+                    }
+                }
+            });
+        }
+
+        function renderImbalance(data) {
+            const dist = data.dataset.severity_distribution; const total = data.dataset.total_samples;
+            const barsHTML = SEV_LABELS.map((l, i) => {
+                const count = dist[l] || 0; const pct = (count / total * 100);
+                return `<div class="prob-bar-container"><div class="prob-bar-label"><span style="color:${SEV_COLORS[i]};font-weight:600">${l}</span><span style="font-family:var(--font-mono)">${count} (${pct.toFixed(1)}%)</span></div><div class="prob-bar-track"><div class="prob-bar-fill" style="width:${Math.max(pct, 2)}%;background:${SEV_COLORS[i]}">${pct > 5 ? count : ''}</div></div></div>`;
+            }).join('');
+            document.getElementById('imbalanceBars').innerHTML = barsHTML;
+            new Chart(document.getElementById('imbalanceChart'), {
+                type: 'pie', data: { labels: SEV_LABELS, datasets: [{ data: SEV_LABELS.map(l => dist[l] || 0), backgroundColor: SEV_COLORS.map(c => c + 'cc'), borderWidth: 2, borderColor: '#0a0e1a' }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8' } },
+                        title: { display: true, text: 'Class Distribution (Before SMOTE)', color: '#f1f5f9', font: { size: 14 } }
+                    }
+                }
+            });
+        }
+
+        function renderRawData(data) {
+            const container = document.getElementById('rawDataContainer');
+            if (!data.sample_rows || !data.sample_rows.length) { container.innerHTML = '<p style="color:var(--text-muted);padding:1rem">No data</p>'; return }
+            const cols = data.columns.slice(0, 10); // Show first 10 columns
+            let html = '<table><thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+            data.sample_rows.forEach(row => { html += '<tr>' + cols.map(c => `<td>${row[c] != null ? row[c] : '—'}</td>`).join('') + '</tr>' });
+            html += '</tbody></table>'; container.innerHTML = html;
+        }
+
+        window.addEventListener('scroll', () => document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20));
+    </script>
+</body>
+
+</html>
