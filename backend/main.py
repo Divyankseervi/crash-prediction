@@ -34,7 +34,7 @@ MODEL_RESULTS_FILE = BACKEND_DIR / "model_results.json"
 EXCEL_FILE = BACKEND_DIR / "AV_accident_data__1_.xlsx"
 SAVED_MODEL_PATH = BACKEND_DIR / "static" / "rf_model.joblib"
 SAVED_SCALER_PATH = BACKEND_DIR / "static" / "scaler.joblib"
-TRAINING_SCRIPT = BACKEND_DIR / "preprocessrohan.py"
+TRAINING_SCRIPT = BACKEND_DIR / "preprocess.py"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # App Setup
@@ -86,7 +86,7 @@ def load_rf_model():
 
 
 def run_training_script():
-    """Execute preprocessrohan.py to train models and generate results."""
+    """Execute preprocess.py to train models and generate results."""
     global _cached_results, _cached_rf_model, _cached_scaler
     python_exe = sys.executable
     print(f"[BACKEND] Running training script: {TRAINING_SCRIPT}")
@@ -360,7 +360,7 @@ def startup_event():
     if SAVED_MODEL_PATH.exists():
         print(f"[BACKEND] Found saved RF model")
     else:
-        print("[BACKEND] Warning: No saved model. Call /api/retrain or run preprocessrohan.py")
+        print("[BACKEND] Warning: No saved model. Call /api/retrain or run preprocess.py")
 
     print(f"[BACKEND] Frontend dir: {FRONTEND_DIR}")
     print(f"[BACKEND] Server ready at http://localhost:8000")
