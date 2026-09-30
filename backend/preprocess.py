@@ -80,10 +80,9 @@ print(df["Severity"].value_counts().to_string())
 severity_map = {"POD": 0, "Minor": 1, "Moderate": 2, "Serious": 3}
 df["Severity_Enc"] = df["Severity"].map(severity_map)
 
-# Fix "Unknown" strings in numeric columns — replace with median
-for col in ["Posted Speed Limit (MPH)", "SV Precrash Speed (MPH)"]:
+# Fix "Unknown" strings in numeric columns
+for col in ["Posted Speed Limit (MPH)", "SV Precrash Speed (MPH)", "Model Year"]:
     df[col] = pd.to_numeric(df[col], errors="coerce")
-    df[col] = df[col].fillna(df[col].median())
 
 # Engineer binary features from categorical columns
 df["Is_Night"]       = (df["Incident_Time"] == "Night").astype(int)
@@ -93,47 +92,59 @@ df["Is_Dark"]        = df["Lighting"].apply(lambda x: 1 if "Dark" in str(x) else
 df["Is_BadWeather"]  = df["Weather"].apply(lambda x: 0 if x in ["Clear", "Unknown"] else 1)
 df["AirBag_Deployed"]= (df["Air_Bag"] == "Yes").astype(int)
 
-# NEW: Advanced engineered features
-# Speed ratio: how fast relative to limit (>1 = speeding)
-df["Speed_Ratio"] = df["SV Precrash Speed (MPH)"] / df["Posted Speed Limit (MPH)"].replace(0, np.nan)
-df["Speed_Ratio"] = df["Speed_Ratio"].fillna(0)
-
 # Temporal features from Incident Date
 df["Incident_Year"]  = pd.to_datetime(df["Incident Date"], errors="coerce").dt.year.fillna(2023).astype(int)
 df["Incident_Month"] = pd.to_datetime(df["Incident Date"], errors="coerce").dt.month.fillna(6).astype(int)
-
-# Vehicle age indicator
-df["Model Year"] = pd.to_numeric(df["Model Year"], errors="coerce")
-df["Is_OldVehicle"] = (df["Model Year"] < df["Model Year"].median()).astype(int)
-df["Is_OldVehicle"] = df["Is_OldVehicle"].fillna(0).astype(int)
-
-# Interaction: Speed × Night driving
-df["Speed_Night"] = df["SV Precrash Speed (MPH)"] * df["Is_Night"]
 
 # One-hot encode remaining categorical columns
 cat_features = ["Roadway_Type", "Weather", "Lighting", "Crash_With"]
 df_ohe = pd.get_dummies(df[cat_features], drop_first=True).astype(int)
 
-# Assemble feature matrix
-num_features = ["Posted Speed Limit (MPH)", "Mileage", "SV Precrash Speed (MPH)", "Speed_Ratio", "Speed_Night"]
-eng_features = ["Is_Night", "Is_Wet", "Is_Highway", "Is_Dark", "Is_BadWeather", "AirBag_Deployed",
-                "Incident_Year", "Incident_Month", "Is_OldVehicle"]
+# Assemble base feature matrix
+base_num = ["Posted Speed Limit (MPH)", "Mileage", "SV Precrash Speed (MPH)", "Model Year"]
+eng_features = ["Is_Night", "Is_Wet", "Is_Highway", "Is_Dark", "Is_BadWeather", "AirBag_Deployed", "Incident_Year", "Incident_Month"]
 
-X = pd.concat([df[num_features + eng_features].astype(float), df_ohe], axis=1)
+X_temp = pd.concat([df[base_num + eng_features].astype(float), df_ohe], axis=1)
 y = df["Severity_Enc"].values
-feat_names = X.columns.tolist()
+
+# Train / test split (80/20, stratified by severity) - BEFORE IMPUTATION
+X_train, X_test, y_train, y_test = train_test_split(
+    X_temp, y, test_size=0.2, random_state=42, stratify=y
+)
+print(f"[SPLIT] Train: {X_train.shape[0]}  |  Test: {X_test.shape[0]}")
+
+# Impute and engineer remaining features on Train and Test separately using Train medians
+median_posted = X_train["Posted Speed Limit (MPH)"].median()
+median_speed = X_train["SV Precrash Speed (MPH)"].median()
+median_year = X_train["Model Year"].median()
+
+for X_split in [X_train, X_test]:
+    X_split["Posted Speed Limit (MPH)"] = X_split["Posted Speed Limit (MPH)"].fillna(median_posted)
+    X_split["SV Precrash Speed (MPH)"] = X_split["SV Precrash Speed (MPH)"].fillna(median_speed)
+    
+    # Speed ratio
+    X_split["Speed_Ratio"] = X_split["SV Precrash Speed (MPH)"] / X_split["Posted Speed Limit (MPH)"].replace(0, np.nan)
+    X_split["Speed_Ratio"] = X_split["Speed_Ratio"].fillna(0)
+    
+    # Vehicle age indicator
+    X_split["Is_OldVehicle"] = (X_split["Model Year"] < median_year).astype(int)
+    X_split["Is_OldVehicle"] = X_split["Is_OldVehicle"].fillna(0).astype(int)
+    
+    # Interaction: Speed × Night driving
+    X_split["Speed_Night"] = X_split["SV Precrash Speed (MPH)"] * X_split["Is_Night"]
+    X_split.drop(columns=["Model Year"], inplace=True)
+
+num_features = ["Posted Speed Limit (MPH)", "Mileage", "SV Precrash Speed (MPH)", "Speed_Ratio", "Speed_Night"]
+feat_names = num_features + eng_features + ["Is_OldVehicle"] + list(df_ohe.columns)
+X_train = X_train[feat_names]
+X_test = X_test[feat_names]
 
 # Standardize numeric features (mean=0, std=1)
 scaler = StandardScaler()
-X[num_features] = scaler.fit_transform(X[num_features])
+X_train[num_features] = scaler.fit_transform(X_train[num_features])
+X_test[num_features] = scaler.transform(X_test[num_features])
 
-print(f"\n[FEAT]  Feature matrix shape: {X.shape}")
-
-# Train / test split (80/20, stratified by severity)
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
-print(f"[SPLIT] Train: {X_train.shape[0]}  |  Test: {X_test.shape[0]}")
+print(f"\n[FEAT]  Feature matrix shape: {X_train.shape[1]} features")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. MODEL 1 — ORDINAL LOGISTIC REGRESSION (from scratch)

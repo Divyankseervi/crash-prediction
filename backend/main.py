@@ -147,74 +147,27 @@ def get_results():
 
 def apply_domain_corrections(proba: np.ndarray, req: PredictionRequest) -> np.ndarray:
     """
-    Apply physics & domain-knowledge corrections to model predictions.
-    
-    Tree-based models CANNOT extrapolate beyond training data range (~0-80 mph).
-    At extreme speeds (e.g. 1000 mph), the RF model assigns the same leaf as
-    ~80 mph, which is clearly wrong. This function applies corrections based on:
-    
-    1. Speed ratio (precrash / limit) — speeding severity
-    2. Absolute pre-crash speed — kinetic energy ∝ v²  
-    3. Combined risk conditions — multiplicative hazards
-    4. Airbag deployment — strong injury indicator
+    Apply minor domain-knowledge constraints to model predictions.
+    Ensures that high-speed or airbag-deployed crashes have a minimum threshold
+    for severity, preventing the model from under-predicting extreme edge cases.
     """
-    proba = proba.copy()  # Don't modify original
+    proba = proba.copy()
     speed = req.precrashSpeed
     limit = req.speedLimit if req.speedLimit > 0 else 35
-    speed_ratio = speed / limit
 
-    # ── Factor 1: Speed Ratio (speeding) ──
-    # Training data max speed ratio is ~2-3x. Beyond that, severity increases.
-    if speed_ratio > 1.0:
-        # Progressively shift probability from POD → more severe
-        # At 2x speed limit: moderate shift; at 5x+: extreme shift
-        overspeed_factor = min((speed_ratio - 1.0) / 3.0, 1.0)  # 0→1 over ratio 1→4
-        shift = proba[0] * overspeed_factor * 0.7  # Take up to 70% from POD
+    # If airbag deployed, it was at least a minor/moderate crash
+    if req.airbag and proba[0] > 0.6:
+        shift = (proba[0] - 0.4)
         proba[0] -= shift
-        proba[1] += shift * 0.35  # 35% to Minor
-        proba[2] += shift * 0.40  # 40% to Moderate
-        proba[3] += shift * 0.25  # 25% to Serious
-
-    # ── Factor 2: Absolute Speed (kinetic energy) ──
-    # KE = ½mv², so danger grows quadratically with speed
-    # Training data max ~80mph. Corrections kick in beyond that.
-    if speed > 80:
-        # Sigmoid-like: ramps from 0 at 80mph to ~1.0 at 200+mph
-        extreme_factor = min(1.0, (speed - 80) / 120)
-        extreme_factor = extreme_factor ** 0.7  # Make it ramp faster
-
-        # At extreme speeds, shift heavily toward Serious
-        shift = proba[0] * extreme_factor * 0.85
-        proba[0] -= shift
-        minor_shift = proba[1] * extreme_factor * 0.5
-        proba[1] -= minor_shift
-        proba[2] += (shift + minor_shift) * 0.35
-        proba[3] += (shift + minor_shift) * 0.65
-
-    # ── Factor 3: Combined Risk Conditions ──
-    # Multiple hazards compound: night + wet + dark + speeding = very dangerous
-    risk_count = sum([
-        req.isNight, req.isWet, req.isDark, req.isBadWeather,
-        1 if speed_ratio > 1.5 else 0,
-        req.airbag,  # Airbag deployed = impact was severe
-    ])
-    if risk_count >= 3:
-        compound_factor = min((risk_count - 2) / 4.0, 0.6)
-        shift = proba[0] * compound_factor
-        proba[0] -= shift
-        proba[1] += shift * 0.3
+        proba[1] += shift * 0.6
         proba[2] += shift * 0.4
-        proba[3] += shift * 0.3
 
-    # ── Factor 4: Airbag as strong severity indicator ──
-    if req.airbag:
-        # If airbag deployed, at minimum this is a significant crash
-        if proba[0] > 0.5:
-            shift = (proba[0] - 0.3) * 0.5
-            proba[0] -= shift
-            proba[1] += shift * 0.5
-            proba[2] += shift * 0.35
-            proba[3] += shift * 0.15
+    # Extremely high speeds (>100 mph) cap PDO probability
+    if speed > 100 and proba[0] > 0.3:
+        shift = proba[0] - 0.3
+        proba[0] = 0.3
+        proba[2] += shift * 0.5
+        proba[3] += shift * 0.5
 
     # Ensure valid probability distribution
     proba = np.clip(proba, 0, 1)
